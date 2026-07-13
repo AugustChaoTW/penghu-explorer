@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>澎湖小小探險家</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 首頁：選小孩 + 選地點 -->
+  <section id="view-home" class="view">
+    <header class="app-header">
+      <h1>🏝️ 澎湖小小探險家</h1>
+    </header>
+
+    <div class="kid-picker">
+      <h2>你是誰？</h2>
+      <div id="kid-buttons" class="kid-buttons"></div>
+    </div>
+
+    <div class="location-picker">
+      <h2>今天去哪裡探險？</h2>
+      <div id="location-cards" class="location-cards"></div>
+    </div>
+  </section>
+
+  <!-- 教材頁 -->
+  <section id="view-learn" class="view hidden">
+    <button class="btn-back" data-goto="home">⬅ 回首頁</button>
+    <div id="learn-content"></div>
+    <button id="btn-start-create" class="btn-big">開始探索 🚀</button>
+  </section>
+
+  <!-- 創作頁 -->
+  <section id="view-create" class="view hidden">
+    <div class="create-topbar">
+      <button class="btn-back" data-goto="learn">⬅</button>
+      <span id="create-title"></span>
+      <button id="btn-save" class="btn-save">✅ 完成作品</button>
+    </div>
+
+    <div id="photo-step" class="photo-step">
+      <h2>先拍一張照片！</h2>
+      <label class="btn-big btn-camera">
+        📷 拍照 / 選照片
+        <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
+      </label>
+      <button id="btn-blank-canvas" class="btn-plain">不用照片，直接畫 ✏️</button>
+    </div>
+
+    <div id="editor" class="editor hidden">
+      <div id="stage-container"></div>
+      <div class="toolbar">
+        <button data-tool="pen" class="tool active">✏️</button>
+        <button data-tool="eraser" class="tool">🧹</button>
+        <button data-tool="text" class="tool">🔤</button>
+        <button data-tool="emoji" class="tool">😀</button>
+        <button id="btn-undo" class="tool">↩️</button>
+        <button id="btn-clear" class="tool">🗑️</button>
+        <div class="colors">
+          <button class="color active" data-color="#e53935" style="background:#e53935"></button>
+          <button class="color" data-color="#1e88e5" style="background:#1e88e5"></button>
+          <button class="color" data-color="#43a047" style="background:#43a047"></button>
+          <button class="color" data-color="#fdd835" style="background:#fdd835"></button>
+          <button class="color" data-color="#111111" style="background:#111111"></button>
+          <button class="color" data-color="#ffffff" style="background:#ffffff;border:1px solid #999"></button>
+        </div>
+      </div>
+      <div id="emoji-panel" class="emoji-panel hidden"></div>
+    </div>
+  </section>
+
+  <!-- 完成頁 -->
+  <section id="view-done" class="view hidden">
+    <h1>🎉 作品完成！</h1>
+    <img id="done-preview" alt="完成的作品">
+    <p id="done-status"></p>
+    <button id="btn-download" class="btn-plain">⬇️ 下載到這台裝置</button>
+    <button class="btn-big" data-goto="home">再玩一次 🔁</button>
+  </section>
+
+  <script src="vendor/konva.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/queue.js"></script>
+  <script src="js/upload.js"></script>
+  <script src="js/learn.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
