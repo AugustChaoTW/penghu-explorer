@@ -8,7 +8,8 @@ const CONFIG = {
   kids: [
     { id: 'momo', name: 'Momo', emoji: '👧' },
     { id: 'coco', name: 'Coco', emoji: '👧' },
-    { id: 'dodo', name: 'Dodo', emoji: '👦' }
+    { id: 'dodo', name: 'Dodo', emoji: '👦' },
+    { id: 'aug', name: 'Aug', emoji: '🧑' }
   ],
   // 匯出圖片最長邊
   exportMaxSize: 1600
