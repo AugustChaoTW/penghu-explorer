@@ -163,10 +163,16 @@
     state.lastWork = { png, work };
 
     document.getElementById('done-preview').src = png;
+    const viewBtn = document.getElementById('btn-view-online');
+    viewBtn.classList.add('hidden');
     show('done');
 
     const result = await Uploader.submit(work);
     document.getElementById('done-status').textContent = result.message;
+    if (result.url) {
+      viewBtn.href = result.url;
+      viewBtn.classList.remove('hidden');
+    }
   });
 
   // --- 下載 ---

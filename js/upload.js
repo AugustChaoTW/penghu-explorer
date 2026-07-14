@@ -26,8 +26,8 @@ const Uploader = (() => {
       return { status: 'queued', message: '沒有網路，作品已暫存，回到有網路的地方會自動上傳。' };
     }
     try {
-      await post(payload);
-      return { status: 'uploaded', message: '作品已上傳到爸爸的雲端硬碟！' };
+      const result = await post(payload);
+      return { status: 'uploaded', message: '作品已上傳到爸爸的雲端硬碟！', url: result.url };
     } catch (err) {
       console.error('upload failed', err);
       await Queue.add(payload);

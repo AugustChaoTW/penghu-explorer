@@ -18,13 +18,15 @@ function doPost(e) {
 
     const png = Utilities.newBlob(
       Utilities.base64Decode(data.image), 'image/png', stamp + '.png');
-    folder.createFile(png);
+    const file = folder.createFile(png);
+    // 開連結即可查看（不用登入同一個 Google 帳號），方便小孩在自己裝置上點開
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
     if (data.json) {
       folder.createFile(stamp + '.json', JSON.stringify(data.json), 'application/json');
     }
 
-    return respond({ ok: true, file: stamp + '.png' });
+    return respond({ ok: true, file: stamp + '.png', url: file.getUrl() });
   } catch (err) {
     return respond({ ok: false, error: String(err) });
   }

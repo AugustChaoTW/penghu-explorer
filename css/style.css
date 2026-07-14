@@ -97,6 +97,8 @@ h2 { font-size: 1.3rem; margin: 20px 0 12px; }
   display: block; width: 100%; margin: 12px 0; padding: 14px;
   font-size: 1.1rem; border: none; border-radius: var(--radius);
   background: #fff; box-shadow: var(--shadow); cursor: pointer;
+  text-align: center; text-decoration: none; color: var(--color-text);
+  box-sizing: border-box;
 }
 
 /* --- create page --- */
