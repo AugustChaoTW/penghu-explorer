@@ -125,12 +125,26 @@
 
   function buildEmojiPanel() {
     emojiPanel.innerHTML = '';
-    state.location.emojis.forEach(char => {
-      const btn = document.createElement('button');
-      btn.textContent = char;
-      btn.addEventListener('click', () => Editor.addEmoji(char));
-      emojiPanel.appendChild(btn);
-    });
+
+    function addSection(label, chars) {
+      const heading = document.createElement('div');
+      heading.className = 'emoji-section-label';
+      heading.textContent = label;
+      emojiPanel.appendChild(heading);
+
+      const grid = document.createElement('div');
+      grid.className = 'emoji-grid';
+      chars.forEach(char => {
+        const btn = document.createElement('button');
+        btn.textContent = char;
+        btn.addEventListener('click', () => Editor.addEmoji(char));
+        grid.appendChild(btn);
+      });
+      emojiPanel.appendChild(grid);
+    }
+
+    addSection(`${state.location.theme}主題`, state.location.emojis);
+    addSection('更多表情', CONFIG.commonEmojis);
   }
 
   // --- 完成作品 ---
