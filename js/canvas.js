@@ -1,6 +1,6 @@
 // Konva 畫布：照片背景 + 手繪 + Emoji + 文字
 const Editor = (() => {
-  let stage, bgLayer, drawLayer, objectLayer, transformer;
+  let stage, bgLayer, drawLayer, objectLayer, stampLayer, transformer;
   let tool = 'pen';
   let color = '#e53935';
   let currentLine = null;
@@ -18,7 +18,8 @@ const Editor = (() => {
     bgLayer = new Konva.Layer({ listening: false });
     drawLayer = new Konva.Layer();
     objectLayer = new Konva.Layer();
-    stage.add(bgLayer, drawLayer, objectLayer);
+    stampLayer = new Konva.Layer({ listening: false });
+    stage.add(bgLayer, drawLayer, objectLayer, stampLayer);
 
     transformer = new Konva.Transformer({
       rotateEnabled: true,
@@ -39,6 +40,23 @@ const Editor = (() => {
     undoStack = [];
     bgMeta = null;
     stage.draw();
+  }
+
+  // 在畫布左下角燒入地點/小孩/日期標籤，匯出時一併保留
+  function setStamp(text) {
+    stampLayer.destroyChildren();
+    const label = new Konva.Label({ x: 12, listening: false });
+    label.add(new Konva.Tag({ fill: 'rgba(0,0,0,0.55)', cornerRadius: 8 }));
+    label.add(new Konva.Text({
+      text,
+      fontSize: 16,
+      fontFamily: '"Noto Sans TC", sans-serif',
+      fill: '#ffffff',
+      padding: 10
+    }));
+    label.y(stage.height() - label.height() - 12);
+    stampLayer.add(label);
+    stampLayer.draw();
   }
 
   function setBackground(imageSrc) {
@@ -190,5 +208,5 @@ const Editor = (() => {
     return stage.toDataURL({ mimeType: 'image/png', pixelRatio });
   }
 
-  return { init, reset, setBackground, addEmoji, addText, undo, setTool, setColor, toJSON, toPNG };
+  return { init, reset, setBackground, setStamp, addEmoji, addText, undo, setTool, setColor, toJSON, toPNG };
 })();

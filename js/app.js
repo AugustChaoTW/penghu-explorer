@@ -87,6 +87,8 @@
     }
     Editor.reset();
     if (imageDataUrl) await Editor.setBackground(imageDataUrl);
+    const dateStr = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    Editor.setStamp(`📍 ${state.location.name} ・ ${state.kid.name} ・ ${dateStr}`);
     buildEmojiPanel();
   }
 
