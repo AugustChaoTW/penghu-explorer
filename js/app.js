@@ -29,17 +29,27 @@
     kidWrap.appendChild(btn);
   });
 
-  // --- 首頁：旅程卡片 ---
+  // --- 首頁：三階段導覽 —— 旅程 → 國家（若有）→ 地點 ---
   const tripWrap = document.getElementById('trip-cards');
   const tripPicker = document.getElementById('trip-picker');
+  const countryPicker = document.getElementById('country-picker');
+  const countryTitle = document.getElementById('country-picker-title');
+  const countryWrap = document.getElementById('country-cards');
   const locationPicker = document.getElementById('location-picker');
   const locationTitle = document.getElementById('location-picker-title');
   const cardWrap = document.getElementById('location-cards');
+
+  function showStage(stage) {
+    tripPicker.classList.toggle('hidden', stage !== 'trip');
+    countryPicker.classList.toggle('hidden', stage !== 'country');
+    locationPicker.classList.toggle('hidden', stage !== 'location');
+  }
 
   trips.forEach(trip => {
     const card = document.createElement('button');
     card.className = 'trip-card';
     card.innerHTML = `
+      ${trip.image ? `<img src="${trip.image}" alt="${trip.name}" loading="lazy">` : ''}
       <div class="trip-card-body">
         <h3>${trip.name}</h3>
         ${trip.dateRange ? `<div class="trip-date">${trip.dateRange}</div>` : ''}
@@ -51,23 +61,42 @@
 
   function selectTrip(trip) {
     state.trip = trip;
-    locationTitle.textContent = trip.name;
-    renderLocationCards(trip);
-    tripPicker.classList.add('hidden');
-    locationPicker.classList.remove('hidden');
+    if (trip.parts && trip.parts.length) {
+      renderCountryCards(trip);
+      countryTitle.textContent = `${trip.name}：要去哪個國家？`;
+      showStage('country');
+    } else {
+      locationTitle.textContent = trip.name;
+      renderLocationCards(trip.locations);
+      showStage('location');
+    }
   }
 
-  function renderLocationCards(trip) {
+  function renderCountryCards(trip) {
+    countryWrap.innerHTML = '';
+    trip.parts.forEach(part => {
+      const partKey = `${part.flag} ${part.name}`;
+      const card = document.createElement('button');
+      card.className = 'trip-card';
+      const count = trip.locations.filter(l => l.part === partKey).length;
+      card.innerHTML = `
+        <div class="trip-card-body">
+          <h3>${part.flag} ${part.name}</h3>
+          ${part.subtitle ? `<div class="trip-date">${part.subtitle}</div>` : ''}
+          <div class="trip-count">${count} 個地點</div>
+        </div>`;
+      card.addEventListener('click', () => {
+        locationTitle.textContent = `${part.flag} ${part.name}`;
+        renderLocationCards(trip.locations.filter(l => l.part === partKey));
+        showStage('location');
+      });
+      countryWrap.appendChild(card);
+    });
+  }
+
+  function renderLocationCards(locations) {
     cardWrap.innerHTML = '';
-    let lastPart = null;
-    trip.locations.forEach(loc => {
-      if (loc.part && loc.part !== lastPart) {
-        cardWrap.appendChild(Object.assign(document.createElement('div'), {
-          className: 'part-divider',
-          textContent: loc.part
-        }));
-        lastPart = loc.part;
-      }
+    locations.forEach(loc => {
       const card = document.createElement('button');
       card.className = 'location-card';
       const label = loc.theme || (loc.badge && loc.badge.name) || '';
@@ -78,14 +107,19 @@
           ${label ? `<div class="theme">${label}</div>` : ''}
           <h3>${titlePrefix}${loc.name}</h3>
         </div>`;
-      card.addEventListener('click', () => openLocation(loc, trip));
+      card.addEventListener('click', () => openLocation(loc, state.trip));
       cardWrap.appendChild(card);
     });
   }
 
-  document.getElementById('btn-back-trips').addEventListener('click', () => {
-    locationPicker.classList.add('hidden');
-    tripPicker.classList.remove('hidden');
+  document.getElementById('btn-back-trips').addEventListener('click', () => showStage('trip'));
+
+  document.getElementById('btn-back-up').addEventListener('click', () => {
+    if (state.trip && state.trip.parts && state.trip.parts.length) {
+      showStage('country');
+    } else {
+      showStage('trip');
+    }
   });
 
   function openLocation(loc, trip) {
