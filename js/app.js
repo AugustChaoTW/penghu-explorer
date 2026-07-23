@@ -13,6 +13,7 @@
     views.forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
     window.scrollTo(0, 0);
     if ('speechSynthesis' in window) speechSynthesis.cancel();
+    if (view === 'home') refreshVisibleCards();
   }
 
   // --- 首頁：小孩按鈕 ---
@@ -25,6 +26,7 @@
       state.kid = kid;
       kidWrap.querySelectorAll('.kid-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      refreshVisibleCards();
     });
     kidWrap.appendChild(btn);
   });
@@ -37,7 +39,11 @@
   const countryWrap = document.getElementById('country-cards');
   const locationPicker = document.getElementById('location-picker');
   const locationTitle = document.getElementById('location-picker-title');
+  const locationProgress = document.getElementById('location-picker-progress');
   const cardWrap = document.getElementById('location-cards');
+
+  let lastCountryTrip = null;
+  let lastLocations = null;
 
   function showStage(stage) {
     tripPicker.classList.toggle('hidden', stage !== 'trip');
@@ -45,23 +51,45 @@
     locationPicker.classList.toggle('hidden', stage !== 'location');
   }
 
-  trips.forEach(trip => {
-    const card = document.createElement('button');
-    card.className = 'trip-card';
-    card.innerHTML = `
-      ${trip.image ? `<img src="${trip.image}" alt="${trip.name}" loading="lazy">` : ''}
-      <div class="trip-card-body">
-        <h3>${trip.name}</h3>
-        ${trip.dateRange ? `<div class="trip-date">${trip.dateRange}</div>` : ''}
-        <div class="trip-count">${trip.locations.length} 個地點</div>
-      </div>`;
-    card.addEventListener('click', () => selectTrip(trip));
-    tripWrap.appendChild(card);
-  });
+  function refreshVisibleCards() {
+    renderTripCards();
+    if (!countryPicker.classList.contains('hidden') && lastCountryTrip) {
+      renderCountryCards(lastCountryTrip);
+    }
+    if (!locationPicker.classList.contains('hidden') && lastLocations) {
+      renderLocationCards(lastLocations);
+    }
+  }
+
+  function progressBadge(done, total) {
+    if (!state.kid || total === 0) return '';
+    return `<div class="progress-count">${done === total ? '🌟' : '⭐'} ${done}/${total} 已完成</div>`;
+  }
+
+  function renderTripCards() {
+    tripWrap.innerHTML = '';
+    trips.forEach(trip => {
+      const done = Progress.countDone(state.kid && state.kid.id, trip.id, trip.locations);
+      const card = document.createElement('button');
+      card.className = 'trip-card';
+      card.innerHTML = `
+        ${trip.image ? `<img src="${trip.image}" alt="${trip.name}" loading="lazy">` : ''}
+        <div class="trip-card-body">
+          <h3>${trip.name}</h3>
+          ${trip.dateRange ? `<div class="trip-date">${trip.dateRange}</div>` : ''}
+          <div class="trip-count">${trip.locations.length} 個地點</div>
+          ${progressBadge(done, trip.locations.length)}
+        </div>`;
+      card.addEventListener('click', () => selectTrip(trip));
+      tripWrap.appendChild(card);
+    });
+  }
+  renderTripCards();
 
   function selectTrip(trip) {
     state.trip = trip;
     if (trip.parts && trip.parts.length) {
+      lastCountryTrip = trip;
       renderCountryCards(trip);
       countryTitle.textContent = `${trip.name}：要去哪個國家？`;
       showStage('country');
@@ -76,18 +104,21 @@
     countryWrap.innerHTML = '';
     trip.parts.forEach(part => {
       const partKey = `${part.flag} ${part.name}`;
+      const partLocations = trip.locations.filter(l => l.part === partKey);
+      const done = Progress.countDone(state.kid && state.kid.id, trip.id, partLocations);
       const card = document.createElement('button');
       card.className = 'trip-card';
-      const count = trip.locations.filter(l => l.part === partKey).length;
       card.innerHTML = `
+        ${part.image ? `<img src="${part.image}" alt="${part.name}" loading="lazy">` : ''}
         <div class="trip-card-body">
           <h3>${part.flag} ${part.name}</h3>
           ${part.subtitle ? `<div class="trip-date">${part.subtitle}</div>` : ''}
-          <div class="trip-count">${count} 個地點</div>
+          <div class="trip-count">${partLocations.length} 個地點</div>
+          ${progressBadge(done, partLocations.length)}
         </div>`;
       card.addEventListener('click', () => {
         locationTitle.textContent = `${part.flag} ${part.name}`;
-        renderLocationCards(trip.locations.filter(l => l.part === partKey));
+        renderLocationCards(partLocations);
         showStage('location');
       });
       countryWrap.appendChild(card);
@@ -95,13 +126,20 @@
   }
 
   function renderLocationCards(locations) {
+    lastLocations = locations;
     cardWrap.innerHTML = '';
+
+    const doneCount = Progress.countDone(state.kid && state.kid.id, state.trip.id, locations);
+    locationProgress.textContent = state.kid ? `${state.kid.emoji} ${state.kid.name}：${doneCount}/${locations.length} 已完成` : '';
+
     locations.forEach(loc => {
+      const isDone = Progress.isDone(state.kid && state.kid.id, state.trip.id, loc.id);
       const card = document.createElement('button');
-      card.className = 'location-card';
+      card.className = 'location-card' + (isDone ? ' is-done' : '');
       const label = loc.theme || (loc.badge && loc.badge.name) || '';
       const titlePrefix = loc.chapterTitle ? `${loc.chapterTitle}　` : '';
       card.innerHTML = `
+        ${isDone ? '<div class="done-check">✅</div>' : ''}
         ${loc.image ? `<img src="${loc.image}" alt="${loc.name}" loading="lazy">` : '<div class="location-card-noimg">🗺️</div>'}
         <div class="card-body">
           ${label ? `<div class="theme">${label}</div>` : ''}
@@ -112,7 +150,10 @@
     });
   }
 
-  document.getElementById('btn-back-trips').addEventListener('click', () => showStage('trip'));
+  document.getElementById('btn-back-trips').addEventListener('click', () => {
+    renderTripCards();
+    showStage('trip');
+  });
 
   document.getElementById('btn-back-up').addEventListener('click', () => {
     if (state.trip && state.trip.parts && state.trip.parts.length) {
@@ -246,6 +287,7 @@
       createdAt: new Date().toISOString()
     };
     state.lastWork = { png, work };
+    Progress.markDone(state.kid.id, state.trip.id, state.location.id);
 
     document.getElementById('done-preview').src = png;
     const viewBtn = document.getElementById('btn-view-online');
