@@ -1,4 +1,5 @@
-// 教材頁渲染
+// 教材頁渲染 — 同時支援澎湖版（story/funFacts/gallery/tasks）
+// 與中歐版（intro/quote/badge/tasks 含 checklist/fillIns/reflect/…）schema
 const Learn = (() => {
 
   function el(tag, className, html) {
@@ -17,60 +18,193 @@ const Learn = (() => {
     speechSynthesis.speak(utter);
   }
 
+  function fillInLine(label) {
+    const row = el('div', 'fillin-row');
+    row.appendChild(el('span', 'fillin-label', label));
+    row.appendChild(el('span', 'fillin-blank'));
+    return row;
+  }
+
+  function checklistBlock(items) {
+    const box = el('div', 'checklist');
+    items.forEach(text => {
+      const row = el('label', 'checklist-item');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      row.appendChild(cb);
+      row.appendChild(el('span', null, text));
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  // 中歐版任務卡：body / checklist / fillIns / reflect / discuss / bonus / options / note / drawBox
+  function renderWorksheetTask(t) {
+    const card = el('div', 'task worksheet-task');
+    card.appendChild(el('div', 'task-title', t.title));
+    if (t.body) card.appendChild(el('p', 'task-body', t.body));
+    if (t.checklist) card.appendChild(checklistBlock(t.checklist));
+    if (t.options) {
+      const opts = el('div', 'checklist');
+      t.options.forEach(text => {
+        const row = el('label', 'checklist-item');
+        const rb = el('input');
+        rb.type = 'radio';
+        rb.name = `opt-${Math.random().toString(36).slice(2)}`;
+        row.appendChild(rb);
+        row.appendChild(el('span', null, text));
+        opts.appendChild(row);
+      });
+      card.appendChild(opts);
+    }
+    if (t.fillIns) t.fillIns.forEach(label => card.appendChild(fillInLine(label)));
+    if (t.drawBox) card.appendChild(el('div', 'draw-box', '✏️ 在這裡畫畫看'));
+    if (t.reflect) card.appendChild(el('div', 'task-reflect', `🤔 想一想：${t.reflect}`));
+    if (t.discuss) card.appendChild(el('div', 'task-discuss', `💬 ${t.discuss}`));
+    if (t.bonus) {
+      const bonus = el('div', 'task-bonus');
+      bonus.appendChild(el('div', 'task-bonus-label', `🌟 ${t.bonus.label || '隱藏挑戰'}`));
+      if (t.bonus.body) bonus.appendChild(el('p', null, t.bonus.body));
+      if (t.bonus.fields) t.bonus.fields.forEach(label => bonus.appendChild(fillInLine(label)));
+      if (t.bonus.note) bonus.appendChild(el('p', 'task-bonus-note', t.bonus.note));
+      card.appendChild(bonus);
+    }
+    if (t.note) card.appendChild(el('p', 'task-note', t.note));
+    return card;
+  }
+
+  // 澎湖版任務卡：icon / title / hint
+  function renderSimpleTask(t) {
+    const card = el('div', 'task');
+    card.appendChild(el('div', 'task-title', `${t.icon || ''} ${t.title}`));
+    if (t.hint) card.appendChild(el('div', 'task-hint', t.hint));
+    return card;
+  }
+
+  function renderFamilyChallenge(fc) {
+    const box = el('div', 'family-challenge');
+    box.appendChild(el('h2', null, '🌟 家庭挑戰'));
+    box.appendChild(el('p', null, fc.body));
+    if (fc.awards) {
+      const awards = el('div', 'awards');
+      fc.awards.forEach(name => {
+        const row = el('div', 'award-row');
+        row.appendChild(el('span', null, `🏆 ${name}`));
+        row.appendChild(el('span', 'fillin-blank'));
+        awards.appendChild(row);
+      });
+      box.appendChild(awards);
+    }
+    return box;
+  }
+
+  function renderJournal(journal) {
+    const box = el('div', 'journal');
+    box.appendChild(el('h2', null, '📖 今日探險日誌'));
+    journal.fields.forEach(label => box.appendChild(fillInLine(label + '：')));
+    return box;
+  }
+
   function render(loc) {
     const root = document.getElementById('learn-content');
     root.innerHTML = '';
 
-    const cover = el('img', 'learn-cover');
-    cover.src = loc.image;
-    cover.alt = loc.name;
-    root.appendChild(cover);
+    if (loc.image) {
+      const cover = el('img', 'learn-cover');
+      cover.src = loc.image;
+      cover.alt = loc.name;
+      root.appendChild(cover);
+    }
 
-    root.appendChild(el('h1', 'learn-title', `📍 ${loc.name}`));
-    root.appendChild(el('p', 'learn-intro', loc.intro));
+    const heading = loc.chapterTitle ? `${loc.chapterTitle}：${loc.name}` : `📍 ${loc.name}`;
+    root.appendChild(el('h1', 'learn-title', heading));
 
-    const speakBtn = el('button', 'btn-speak', '🔊 唸給我聽');
-    speakBtn.addEventListener('click', () => speak(loc.story));
-    root.appendChild(speakBtn);
+    if (loc.place) root.appendChild(el('p', 'learn-place', `📍 ${loc.place}`));
+    if (loc.badge && loc.badge.name) root.appendChild(el('p', 'learn-badge', `🏅 徽章：${loc.badge.name}`));
+    if (loc.growthTheme) root.appendChild(el('p', 'learn-growth', `🌱 ${loc.growthTheme}`));
+    if (loc.link) root.appendChild(el('p', 'learn-link', `🔗 ${loc.link}`));
 
-    const story = el('div', 'story');
-    loc.story.forEach(p => story.appendChild(el('p', null, p)));
-    root.appendChild(story);
+    if (loc.intro) root.appendChild(el('p', 'learn-intro', loc.intro));
+    if (loc.quote) root.appendChild(el('p', 'learn-quote', loc.quote.replace(/\n/g, '<br>')));
 
-    root.appendChild(el('h2', null, '💡 你知道嗎？'));
-    const facts = el('div', 'funfacts');
-    loc.funFacts.forEach(f => {
-      facts.appendChild(el('div', 'funfact', `<span class="icon">${f.icon}</span>${f.text}`));
-    });
-    root.appendChild(facts);
+    // story（澎湖）或 intro 陣列（中歐前言）都當朗讀文本
+    const speakText = loc.story || loc.intro || loc.narrative;
+    if (speakText) {
+      const speakBtn = el('button', 'btn-speak', '🔊 唸給我聽');
+      speakBtn.addEventListener('click', () => speak(Array.isArray(speakText) ? speakText : [speakText]));
+      root.appendChild(speakBtn);
+    }
 
-    root.appendChild(el('h2', null, '🖼️ 先看看照片'));
-    const gallery = el('div', 'gallery');
-    loc.gallery.forEach(g => {
-      const fig = el('figure');
-      const img = el('img');
-      img.src = g.image;
-      img.alt = g.caption;
-      img.loading = 'lazy';
-      fig.appendChild(img);
-      fig.appendChild(el('figcaption', null, g.caption));
-      gallery.appendChild(fig);
-    });
-    root.appendChild(gallery);
+    if (loc.story) {
+      const story = el('div', 'story');
+      loc.story.forEach(p => story.appendChild(el('p', null, p)));
+      root.appendChild(story);
+    } else if (Array.isArray(loc.intro)) {
+      const story = el('div', 'story');
+      loc.intro.forEach(p => story.appendChild(el('p', null, p)));
+      root.appendChild(story);
+    }
+
+    if (loc.narrative) {
+      root.appendChild(el('h2', null, '📜 最後的故事'));
+      const story = el('div', 'story');
+      loc.narrative.forEach(p => story.appendChild(el('p', null, p)));
+      root.appendChild(story);
+    }
+
+    if (loc.funFacts) {
+      root.appendChild(el('h2', null, '💡 你知道嗎？'));
+      const facts = el('div', 'funfacts');
+      loc.funFacts.forEach(f => {
+        facts.appendChild(el('div', 'funfact', `<span class="icon">${f.icon}</span>${f.text}`));
+      });
+      root.appendChild(facts);
+    }
+
+    if (loc.gallery) {
+      root.appendChild(el('h2', null, '🖼️ 先看看照片'));
+      const gallery = el('div', 'gallery');
+      loc.gallery.forEach(g => {
+        const fig = el('figure');
+        const img = el('img');
+        img.src = g.image;
+        img.alt = g.caption;
+        img.loading = 'lazy';
+        fig.appendChild(img);
+        fig.appendChild(el('figcaption', null, g.caption));
+        gallery.appendChild(fig);
+      });
+      root.appendChild(gallery);
+    }
 
     if (loc.rules) {
       root.appendChild(el('div', 'rules', `⚠️ ${loc.rules}`));
     }
 
-    root.appendChild(el('h2', null, '🔍 今天的任務'));
-    const tasks = el('div', 'tasks');
-    loc.tasks.forEach(t => {
-      const card = el('div', 'task');
-      card.appendChild(el('div', 'task-title', `${t.icon} ${t.title}`));
-      card.appendChild(el('div', 'task-hint', t.hint));
-      tasks.appendChild(card);
-    });
-    root.appendChild(tasks);
+    if (loc.stub) {
+      root.appendChild(el('div', 'stub-note', '📝 這一關的任務內容還在準備中，敬請期待！'));
+    }
+
+    if (loc.tasks && loc.tasks.length) {
+      root.appendChild(el('h2', null, '🔍 今天的任務'));
+      const tasks = el('div', 'tasks');
+      loc.tasks.forEach(t => {
+        tasks.appendChild(t.icon !== undefined || t.hint !== undefined ? renderSimpleTask(t) : renderWorksheetTask(t));
+      });
+      root.appendChild(tasks);
+    }
+
+    if (loc.familyChallenge) root.appendChild(renderFamilyChallenge(loc.familyChallenge));
+    if (loc.journal) root.appendChild(renderJournal(loc.journal));
+
+    if (loc.completionChecklist) {
+      root.appendChild(el('h2', null, '🌟 我完成了今天的探險'));
+      root.appendChild(checklistBlock(loc.completionChecklist));
+    }
+
+    if (loc.badgeSpirit) {
+      root.appendChild(el('div', 'badge-spirit', `🏅 ${loc.badgeSpirit.replace(/\n/g, '<br>')}`));
+    }
   }
 
   return { render };

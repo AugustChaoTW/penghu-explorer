@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>澎湖小小探險家</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+  <title>小小探險家</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <!-- 首頁：選小孩 + 選地點 -->
+  <!-- 首頁：選小孩 + 選旅程 + 選地點 -->
   <section id="view-home" class="view">
     <header class="app-header">
-      <h1>🏝️ 澎湖小小探險家</h1>
+      <h1>🧭 小小探險家</h1>
     </header>
 
     <div class="kid-picker">
@@ -20,8 +20,14 @@
       <div id="kid-buttons" class="kid-buttons"></div>
     </div>
 
-    <div class="location-picker">
-      <h2>今天去哪裡探險？</h2>
+    <div id="trip-picker" class="trip-picker">
+      <h2>今天要去哪一趟旅程？</h2>
+      <div id="trip-cards" class="trip-cards"></div>
+    </div>
+
+    <div id="location-picker" class="location-picker hidden">
+      <button id="btn-back-trips" class="btn-back">⬅ 回旅程列表</button>
+      <h2 id="location-picker-title">今天去哪裡探險？</h2>
       <div id="location-cards" class="location-cards"></div>
     </div>
   </section>

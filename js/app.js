@@ -1,10 +1,12 @@
 // 主流程：路由 + 各頁事件
 (async () => {
-  const state = { kid: null, location: null, lastWork: null };
+  const state = { trip: null, kid: null, location: null, lastWork: null };
   let editorReady = false;
 
-  const res = await fetch('data/locations.json');
-  const { locations } = await res.json();
+  const TRIP_FILES = ['data/trips/penghu.json', 'data/trips/europe.json'];
+  const trips = await Promise.all(
+    TRIP_FILES.map(path => fetch(path).then(r => r.json()))
+  );
 
   const views = ['home', 'learn', 'create', 'done'];
   function show(view) {
@@ -27,26 +29,71 @@
     kidWrap.appendChild(btn);
   });
 
-  // --- 首頁：地點卡片 ---
+  // --- 首頁：旅程卡片 ---
+  const tripWrap = document.getElementById('trip-cards');
+  const tripPicker = document.getElementById('trip-picker');
+  const locationPicker = document.getElementById('location-picker');
+  const locationTitle = document.getElementById('location-picker-title');
   const cardWrap = document.getElementById('location-cards');
-  locations.forEach(loc => {
+
+  trips.forEach(trip => {
     const card = document.createElement('button');
-    card.className = 'location-card';
+    card.className = 'trip-card';
     card.innerHTML = `
-      <img src="${loc.image}" alt="${loc.name}" loading="lazy">
-      <div class="card-body">
-        <div class="theme">${loc.theme}</div>
-        <h3>${loc.name}</h3>
+      <div class="trip-card-body">
+        <h3>${trip.name}</h3>
+        ${trip.dateRange ? `<div class="trip-date">${trip.dateRange}</div>` : ''}
+        <div class="trip-count">${trip.locations.length} 個地點</div>
       </div>`;
-    card.addEventListener('click', () => openLocation(loc));
-    cardWrap.appendChild(card);
+    card.addEventListener('click', () => selectTrip(trip));
+    tripWrap.appendChild(card);
   });
 
-  function openLocation(loc) {
+  function selectTrip(trip) {
+    state.trip = trip;
+    locationTitle.textContent = trip.name;
+    renderLocationCards(trip);
+    tripPicker.classList.add('hidden');
+    locationPicker.classList.remove('hidden');
+  }
+
+  function renderLocationCards(trip) {
+    cardWrap.innerHTML = '';
+    let lastPart = null;
+    trip.locations.forEach(loc => {
+      if (loc.part && loc.part !== lastPart) {
+        cardWrap.appendChild(Object.assign(document.createElement('div'), {
+          className: 'part-divider',
+          textContent: loc.part
+        }));
+        lastPart = loc.part;
+      }
+      const card = document.createElement('button');
+      card.className = 'location-card';
+      const label = loc.theme || (loc.badge && loc.badge.name) || '';
+      const titlePrefix = loc.chapterTitle ? `${loc.chapterTitle}　` : '';
+      card.innerHTML = `
+        ${loc.image ? `<img src="${loc.image}" alt="${loc.name}" loading="lazy">` : '<div class="location-card-noimg">🗺️</div>'}
+        <div class="card-body">
+          ${label ? `<div class="theme">${label}</div>` : ''}
+          <h3>${titlePrefix}${loc.name}</h3>
+        </div>`;
+      card.addEventListener('click', () => openLocation(loc, trip));
+      cardWrap.appendChild(card);
+    });
+  }
+
+  document.getElementById('btn-back-trips').addEventListener('click', () => {
+    locationPicker.classList.add('hidden');
+    tripPicker.classList.remove('hidden');
+  });
+
+  function openLocation(loc, trip) {
     if (!state.kid) {
       alert('先選你是誰喔！');
       return;
     }
+    state.trip = trip || state.trip;
     state.location = loc;
     Learn.render(loc);
     show('learn');
@@ -145,7 +192,11 @@
       emojiPanel.appendChild(grid);
     }
 
-    addSection(`${state.location.theme}主題`, state.location.emojis);
+    const loc = state.location;
+    if (loc.emojis && loc.emojis.length) {
+      const label = loc.theme || (loc.badge && loc.badge.name) || '主題';
+      addSection(`${label}主題`, loc.emojis);
+    }
     addSection('更多表情', CONFIG.commonEmojis);
   }
 
@@ -155,7 +206,7 @@
     const work = {
       kid: state.kid.name,
       location: state.location.name,
-      locationId: state.location.id,
+      locationId: `${state.trip ? state.trip.id + '-' : ''}${state.location.id}`,
       image: png.split(',')[1], // base64 only
       json: Editor.toJSON(),
       createdAt: new Date().toISOString()
@@ -184,13 +235,18 @@
     a.click();
   });
 
-  // --- ?location=001 直達（QR Code 用）---
-  const wanted = new URLSearchParams(location.search).get('location');
-  if (wanted) {
-    const loc = locations.find(l => l.id === wanted);
-    if (loc) {
+  // --- ?trip=xxx&location=001 直達（QR Code 用）；只給 location 時預設澎湖（向下相容舊 QR）---
+  const params = new URLSearchParams(location.search);
+  const wantedLocation = params.get('location');
+  if (wantedLocation) {
+    const wantedTripId = params.get('trip');
+    const trip = wantedTripId
+      ? trips.find(t => t.id === wantedTripId)
+      : trips.find(t => t.locations.some(l => l.id === wantedLocation)) || trips[0];
+    const loc = trip && trip.locations.find(l => l.id === wantedLocation);
+    if (trip && loc) {
       state.kid = state.kid || CONFIG.kids[0]; // 直達時預設第一位，仍可回首頁改
-      openLocation(loc);
+      openLocation(loc, trip);
     }
   }
 
