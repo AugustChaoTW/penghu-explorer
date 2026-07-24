@@ -264,6 +264,7 @@ const Learn = (() => {
     if (loc.story) script.push(...loc.story);
     if (loc.quote) script.push(loc.quote.replace(/\n/g, '。'));
     if (loc.funFacts) loc.funFacts.forEach(f => script.push(f.text));
+    if (loc.storyReflect) script.push('想一想：' + loc.storyReflect);
 
     if (script.length) {
       const speakBtn = el('button', 'btn-speak', '🔊 唸給我聽');
@@ -286,6 +287,10 @@ const Learn = (() => {
         facts.appendChild(el('div', 'funfact', `<span class="icon">${f.icon || '📜'}</span>${f.text}`));
       });
       root.appendChild(facts);
+    }
+
+    if (loc.storyReflect) {
+      root.appendChild(el('div', 'task-reflect', `🌟 想一想：${loc.storyReflect}`));
     }
 
     if (!loc.story && !loc.funFacts) {
