@@ -18,6 +18,28 @@ const Learn = (() => {
     speechSynthesis.speak(utter);
   }
 
+  // 朗讀稿：前述 → 第一關 → 第二關 → …（含任務內文、勾選項目、想一想、討論）
+  function buildSpeechScript(loc) {
+    const parts = [];
+
+    const intro = loc.story || (Array.isArray(loc.intro) ? loc.intro : null) || loc.narrative;
+    if (intro) parts.push('前述。', ...intro);
+
+    (loc.tasks || []).forEach(t => {
+      parts.push(t.title);
+      if (t.hint) parts.push(t.hint);
+      if (t.body) parts.push(t.body);
+      if (t.checklist) parts.push(...t.checklist);
+      if (t.options) parts.push('選項有：' + t.options.join('、'));
+      if (t.reflect) parts.push('想一想：' + t.reflect);
+      if (t.discuss) parts.push(t.discuss);
+      if (t.bonus && t.bonus.body) parts.push(t.bonus.label || '隱藏挑戰', t.bonus.body);
+      if (t.note) parts.push(t.note);
+    });
+
+    return parts;
+  }
+
   function fillInLine(label) {
     const row = el('div', 'fillin-row');
     row.appendChild(el('span', 'fillin-label', label));
@@ -127,11 +149,11 @@ const Learn = (() => {
     if (loc.intro) root.appendChild(el('p', 'learn-intro', loc.intro));
     if (loc.quote) root.appendChild(el('p', 'learn-quote', loc.quote.replace(/\n/g, '<br>')));
 
-    // story（澎湖）或 intro 陣列（中歐前言）都當朗讀文本
-    const speakText = loc.story || loc.intro || loc.narrative;
-    if (speakText) {
+    // 朗讀：前述 + 逐關任務（第一關/第二關…）
+    const script = buildSpeechScript(loc);
+    if (script.length) {
       const speakBtn = el('button', 'btn-speak', '🔊 唸給我聽');
-      speakBtn.addEventListener('click', () => speak(Array.isArray(speakText) ? speakText : [speakText]));
+      speakBtn.addEventListener('click', () => speak(script));
       root.appendChild(speakBtn);
     }
 
