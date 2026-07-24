@@ -67,6 +67,10 @@
         <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
       </label>
       <button id="btn-blank-canvas" class="btn-plain">不用照片，直接畫 ✏️</button>
+      <label class="btn-plain btn-camera">
+        🎥 錄一段影片
+        <input type="file" id="video-input" accept="video/*" capture="environment" hidden>
+      </label>
     </div>
 
     <div id="editor" class="editor hidden">
@@ -95,6 +99,7 @@
   <section id="view-done" class="view hidden">
     <h1>🎉 作品完成！</h1>
     <img id="done-preview" alt="完成的作品">
+    <video id="done-preview-video" class="hidden" controls playsinline></video>
     <p id="done-status"></p>
     <a id="btn-view-online" class="btn-plain hidden" target="_blank" rel="noopener">🔗 線上查看</a>
     <button id="btn-download" class="btn-plain">⬇️ 下載到這台裝置</button>

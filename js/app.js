@@ -245,6 +245,49 @@
 
   document.getElementById('btn-blank-canvas').addEventListener('click', () => startEditor(null));
 
+  // --- 錄影片：跳過畫布，直接上傳 ---
+  const MAX_VIDEO_MB = 25;
+  document.getElementById('video-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      alert(`影片太大了（超過 ${MAX_VIDEO_MB}MB），錄短一點再試一次！`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => saveVideo(reader.result, file.type || 'video/webm');
+    reader.readAsDataURL(file);
+  });
+
+  async function saveVideo(dataUrl, mimeType) {
+    const work = {
+      kid: state.kid.name,
+      location: state.location.name,
+      locationId: `${state.trip ? state.trip.id + '-' : ''}${state.location.id}`,
+      video: dataUrl.split(',')[1],
+      mimeType,
+      createdAt: new Date().toISOString()
+    };
+    state.lastWork = { videoUrl: dataUrl, mimeType, work };
+    Progress.markDone(state.kid.id, state.trip.id, state.location.id);
+
+    document.getElementById('done-preview').classList.add('hidden');
+    const videoEl = document.getElementById('done-preview-video');
+    videoEl.src = dataUrl;
+    videoEl.classList.remove('hidden');
+    const viewBtn = document.getElementById('btn-view-online');
+    viewBtn.classList.add('hidden');
+    show('done');
+
+    const result = await Uploader.submit(work);
+    document.getElementById('done-status').textContent = result.message;
+    if (result.url) {
+      viewBtn.href = result.url;
+      viewBtn.classList.remove('hidden');
+    }
+  }
+
   async function startEditor(imageDataUrl) {
     document.getElementById('photo-step').classList.add('hidden');
     document.getElementById('editor').classList.remove('hidden');
@@ -335,7 +378,10 @@
     state.lastWork = { png, work };
     Progress.markDone(state.kid.id, state.trip.id, state.location.id);
 
-    document.getElementById('done-preview').src = png;
+    document.getElementById('done-preview-video').classList.add('hidden');
+    const previewImg = document.getElementById('done-preview');
+    previewImg.classList.remove('hidden');
+    previewImg.src = png;
     const viewBtn = document.getElementById('btn-view-online');
     viewBtn.classList.add('hidden');
     show('done');
@@ -352,8 +398,14 @@
   document.getElementById('btn-download').addEventListener('click', () => {
     if (!state.lastWork) return;
     const a = document.createElement('a');
-    a.href = state.lastWork.png;
-    a.download = `${state.lastWork.work.locationId}-${state.kid.name}-${Date.now()}.png`;
+    if (state.lastWork.videoUrl) {
+      const ext = (state.lastWork.mimeType || '').includes('mp4') ? 'mp4' : 'webm';
+      a.href = state.lastWork.videoUrl;
+      a.download = `${state.lastWork.work.locationId}-${state.kid.name}-${Date.now()}.${ext}`;
+    } else {
+      a.href = state.lastWork.png;
+      a.download = `${state.lastWork.work.locationId}-${state.kid.name}-${Date.now()}.png`;
+    }
     a.click();
   });
 

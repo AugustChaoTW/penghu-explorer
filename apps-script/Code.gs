@@ -5,20 +5,35 @@
 const TOKEN = 'penghu-family-2026'; // 與 js/config.js 的 uploadToken 一致
 const ROOT_FOLDER = '澎湖探索作品';
 
+// 影片副檔名對照（file input 錄出來常見的 mimeType）
+const VIDEO_EXT = {
+  'video/webm': 'webm',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov'
+};
+
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     if (data.token !== TOKEN) return respond({ ok: false, error: 'bad token' });
-    if (!data.image || !data.kid || !data.location) {
+    if (!data.kid || !data.location || (!data.image && !data.video)) {
       return respond({ ok: false, error: 'missing fields' });
     }
 
     const folder = getOrCreatePath([ROOT_FOLDER, data.location, data.kid]);
     const stamp = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd-HHmmss');
 
-    const png = Utilities.newBlob(
-      Utilities.base64Decode(data.image), 'image/png', stamp + '.png');
-    const file = folder.createFile(png);
+    let file;
+    if (data.video) {
+      const ext = VIDEO_EXT[data.mimeType] || 'webm';
+      const blob = Utilities.newBlob(
+        Utilities.base64Decode(data.video), data.mimeType || 'video/webm', stamp + '.' + ext);
+      file = folder.createFile(blob);
+    } else {
+      const png = Utilities.newBlob(
+        Utilities.base64Decode(data.image), 'image/png', stamp + '.png');
+      file = folder.createFile(png);
+    }
     // 開連結即可查看（不用登入同一個 Google 帳號），方便小孩在自己裝置上點開
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
@@ -26,7 +41,7 @@ function doPost(e) {
       folder.createFile(stamp + '.json', JSON.stringify(data.json), 'application/json');
     }
 
-    return respond({ ok: true, file: stamp + '.png', url: file.getUrl() });
+    return respond({ ok: true, file: file.getName(), url: file.getUrl() });
   } catch (err) {
     return respond({ ok: false, error: String(err) });
   }

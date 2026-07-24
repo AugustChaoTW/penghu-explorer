@@ -265,7 +265,7 @@ h2 { font-size: 1.3rem; margin: 20px 0 12px; }
 /* --- done page --- */
 #view-done { text-align: center; }
 #view-done h1 { margin: 24px 0; }
-#done-preview {
+#done-preview, #done-preview-video {
   max-width: 100%; border-radius: var(--radius); box-shadow: var(--shadow);
 }
 #done-status { margin: 14px 0; font-size: 1.05rem; color: #555; }
