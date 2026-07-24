@@ -21,7 +21,7 @@
     });
   }
 
-  const views = ['home', 'learn', 'create', 'done'];
+  const views = ['home', 'learn', 'story', 'create', 'done'];
   function show(view) {
     views.forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
     window.scrollTo(0, 0);
@@ -169,12 +169,20 @@
       const titlePrefix = loc.chapterTitle ? `${loc.chapterTitle}　` : '';
       card.innerHTML = `
         ${isDone ? '<div class="done-check">✅</div>' : ''}
+        ${Learn.hasStory(loc) ? '<button class="story-badge" title="睡前故事">📖</button>' : ''}
         ${loc.image ? `<img src="${loc.image}" alt="${loc.name}" loading="lazy">` : '<div class="location-card-noimg">🗺️</div>'}
         <div class="card-body">
           ${label ? `<div class="theme">${label}</div>` : ''}
           <h3>${titlePrefix}${loc.name}</h3>
         </div>`;
       card.addEventListener('click', () => openLocation(loc, state.trip));
+      const storyBtn = card.querySelector('.story-badge');
+      if (storyBtn) {
+        storyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openStory(loc, state.trip);
+        });
+      }
       cardWrap.appendChild(card);
     });
   }
@@ -202,6 +210,15 @@
     Learn.render(loc);
     show('learn');
   }
+
+  // --- 睡前故事：獨立頁面，跟白天探險任務分開，不需要先選小孩 ---
+  function openStory(loc, trip) {
+    state.trip = trip || state.trip;
+    Learn.renderStory(loc);
+    show('story');
+  }
+
+  document.getElementById('btn-back-from-story').addEventListener('click', () => show('home'));
 
   // --- 返回按鈕 ---
   document.querySelectorAll('[data-goto]').forEach(btn => {

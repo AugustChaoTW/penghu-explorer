@@ -32,11 +32,12 @@ const Learn = (() => {
     return parts;
   }
 
-  // 朗讀稿：前述 → 第一關 → 第二關 → …（含任務內文、勾選項目、想一想、討論）
+  // 朗讀稿（教材/任務頁用）：前述 → 第一關 → 第二關 → …
+  // 注意：不含 story（睡前故事），那是獨立頁面，活動時間不強迫聽故事
   function buildSpeechScript(loc) {
     const parts = [];
 
-    const intro = loc.story || (Array.isArray(loc.intro) ? loc.intro : null) || loc.narrative;
+    const intro = Array.isArray(loc.intro) ? loc.intro : (loc.intro ? [loc.intro] : null) || loc.narrative;
     if (intro) parts.push('前述。', ...intro);
 
     (loc.tasks || []).forEach(t => parts.push(...buildTaskScript(t)));
@@ -178,11 +179,8 @@ const Learn = (() => {
       root.appendChild(speakBtn);
     }
 
-    if (loc.story) {
-      const story = el('div', 'story');
-      loc.story.forEach(p => story.appendChild(el('p', null, p)));
-      root.appendChild(story);
-    } else if (Array.isArray(loc.intro)) {
+    // 中歐前言（陣列）在教材頁顯示一小段就好，完整睡前故事在獨立故事頁
+    if (Array.isArray(loc.intro)) {
       const story = el('div', 'story');
       loc.intro.forEach(p => story.appendChild(el('p', null, p)));
       root.appendChild(story);
@@ -193,15 +191,6 @@ const Learn = (() => {
       const story = el('div', 'story');
       loc.narrative.forEach(p => story.appendChild(el('p', null, p)));
       root.appendChild(story);
-    }
-
-    if (loc.funFacts) {
-      root.appendChild(el('h2', null, '💡 你知道嗎？'));
-      const facts = el('div', 'funfacts');
-      loc.funFacts.forEach(f => {
-        facts.appendChild(el('div', 'funfact', `<span class="icon">${f.icon}</span>${f.text}`));
-      });
-      root.appendChild(facts);
     }
 
     if (loc.gallery) {
@@ -250,5 +239,59 @@ const Learn = (() => {
     }
   }
 
-  return { render };
+  // 獨立故事頁：睡前故事（小說體）+ 故事背後的秘密（歷史小知識）
+  // 跟教材/任務頁完全分開，白天探險時不會被強迫看到
+  function hasStory(loc) {
+    return !!(loc.story && loc.story.length);
+  }
+
+  function renderStory(loc) {
+    const root = document.getElementById('story-content');
+    root.innerHTML = '';
+
+    if (loc.image) {
+      const cover = el('img', 'learn-cover');
+      cover.src = loc.image;
+      cover.alt = loc.name;
+      root.appendChild(cover);
+    }
+
+    const heading = loc.chapterTitle ? `${loc.chapterTitle}：${loc.name}` : `📍 ${loc.name}`;
+    root.appendChild(el('h1', 'learn-title', `📖 ${heading}`));
+    if (loc.place) root.appendChild(el('p', 'learn-place', `📍 ${loc.place}`));
+
+    const script = [];
+    if (loc.story) script.push(...loc.story);
+    if (loc.quote) script.push(loc.quote.replace(/\n/g, '。'));
+    if (loc.funFacts) loc.funFacts.forEach(f => script.push(f.text));
+
+    if (script.length) {
+      const speakBtn = el('button', 'btn-speak', '🔊 唸給我聽');
+      speakBtn.addEventListener('click', () => speak(script));
+      root.appendChild(speakBtn);
+    }
+
+    if (loc.story) {
+      const story = el('div', 'story');
+      loc.story.forEach(p => story.appendChild(el('p', null, p)));
+      root.appendChild(story);
+    }
+
+    if (loc.quote) root.appendChild(el('p', 'learn-quote', loc.quote.replace(/\n/g, '<br>')));
+
+    if (loc.funFacts && loc.funFacts.length) {
+      root.appendChild(el('h2', null, '🔎 故事背後的秘密'));
+      const facts = el('div', 'funfacts');
+      loc.funFacts.forEach(f => {
+        facts.appendChild(el('div', 'funfact', `<span class="icon">${f.icon || '📜'}</span>${f.text}`));
+      });
+      root.appendChild(facts);
+    }
+
+    if (!loc.story && !loc.funFacts) {
+      root.appendChild(el('div', 'stub-note', '📝 這一關的故事還在準備中，敬請期待！'));
+    }
+  }
+
+  return { render, renderStory, hasStory };
 })();
