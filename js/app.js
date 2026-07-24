@@ -1,19 +1,34 @@
 // 主流程：路由 + 各頁事件
 (async () => {
-  const state = { trip: null, kid: null, location: null, lastWork: null };
+  const state = { trip: null, kid: null, location: null, lastWork: null, homeStage: 'trip', partKey: null };
   let editorReady = false;
+  let currentView = 'home';
 
   const TRIP_FILES = ['data/trips/penghu.json', 'data/trips/europe.json'];
   const trips = await Promise.all(
     TRIP_FILES.map(path => fetch(path).then(r => r.json()))
   );
 
+  // --- reload 後回到原位：記住小孩/旅程/國家/地點/頁面 ---
+  function persist() {
+    AppState.save({
+      kidId: state.kid && state.kid.id,
+      tripId: state.trip && state.trip.id,
+      partKey: state.partKey,
+      locationId: state.location && state.location.id,
+      homeStage: state.homeStage,
+      view: currentView
+    });
+  }
+
   const views = ['home', 'learn', 'create', 'done'];
   function show(view) {
     views.forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
     window.scrollTo(0, 0);
     if ('speechSynthesis' in window) speechSynthesis.cancel();
+    if (view === 'home' || view === 'learn') currentView = view;
     if (view === 'home') refreshVisibleCards();
+    persist();
   }
 
   // --- 首頁：小孩按鈕 ---
@@ -27,6 +42,7 @@
       kidWrap.querySelectorAll('.kid-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       refreshVisibleCards();
+      persist();
     });
     kidWrap.appendChild(btn);
   });
@@ -49,6 +65,9 @@
     tripPicker.classList.toggle('hidden', stage !== 'trip');
     countryPicker.classList.toggle('hidden', stage !== 'country');
     locationPicker.classList.toggle('hidden', stage !== 'location');
+    state.homeStage = stage;
+    currentView = 'home';
+    persist();
   }
 
   function refreshVisibleCards() {
@@ -86,10 +105,17 @@
   }
   renderTripCards();
 
-  function selectTrip(trip) {
+  // partKey 給定時（reload 還原用）直接跳到該國家的地點列表
+  function selectTrip(trip, partKey) {
     state.trip = trip;
+    state.partKey = null;
     if (trip.parts && trip.parts.length) {
       lastCountryTrip = trip;
+      const part = partKey && trip.parts.find(p => `${p.flag} ${p.name}` === partKey);
+      if (part) {
+        selectCountry(trip, part);
+        return;
+      }
       renderCountryCards(trip);
       countryTitle.textContent = `${trip.name}：要去哪個國家？`;
       showStage('country');
@@ -98,6 +124,13 @@
       renderLocationCards(trip.locations);
       showStage('location');
     }
+  }
+
+  function selectCountry(trip, part) {
+    state.partKey = `${part.flag} ${part.name}`;
+    locationTitle.textContent = `${part.flag} ${part.name}`;
+    renderLocationCards(trip.locations.filter(l => l.part === state.partKey));
+    showStage('location');
   }
 
   function renderCountryCards(trip) {
@@ -116,11 +149,7 @@
           <div class="trip-count">${partLocations.length} 個地點</div>
           ${progressBadge(done, partLocations.length)}
         </div>`;
-      card.addEventListener('click', () => {
-        locationTitle.textContent = `${part.flag} ${part.name}`;
-        renderLocationCards(partLocations);
-        showStage('location');
-      });
+      card.addEventListener('click', () => selectCountry(trip, part));
       countryWrap.appendChild(card);
     });
   }
@@ -314,6 +343,7 @@
   // --- ?trip=xxx&location=001 直達（QR Code 用）；只給 location 時預設澎湖（向下相容舊 QR）---
   const params = new URLSearchParams(location.search);
   const wantedLocation = params.get('location');
+  let handledByDeepLink = false;
   if (wantedLocation) {
     const wantedTripId = params.get('trip');
     const trip = wantedTripId
@@ -323,6 +353,30 @@
     if (trip && loc) {
       state.kid = state.kid || CONFIG.kids[0]; // 直達時預設第一位，仍可回首頁改
       openLocation(loc, trip);
+      handledByDeepLink = true;
+    }
+  }
+
+  // --- reload 還原：回到上次瀏覽到的小孩/旅程/國家/地點/頁面（QR 直達優先，不還原）---
+  if (!handledByDeepLink) {
+    const saved = AppState.load();
+    if (saved) {
+      const kid = CONFIG.kids.find(k => k.id === saved.kidId);
+      if (kid) {
+        state.kid = kid;
+        const btn = [...kidWrap.querySelectorAll('.kid-btn')].find(b => b.textContent.includes(kid.name));
+        if (btn) btn.classList.add('active');
+        renderTripCards(); // 補上這位小孩的完成度徽章
+      }
+      const trip = trips.find(t => t.id === saved.tripId);
+      if (trip) {
+        if (saved.view === 'learn' && state.kid) {
+          const loc = trip.locations.find(l => l.id === saved.locationId);
+          if (loc) openLocation(loc, trip);
+        } else if (saved.homeStage === 'country' || saved.homeStage === 'location') {
+          selectTrip(trip, saved.partKey);
+        }
+      }
     }
   }
 
