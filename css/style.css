@@ -104,10 +104,14 @@ h2 { font-size: 1.3rem; margin: 20px 0 12px; }
   font-size: 1.05rem; color: #777; margin: 12px 0;
 }
 
-.story p {
-  font-size: 1.15rem; line-height: 1.9; background: #fff;
-  border-radius: var(--radius); padding: 14px 16px; margin: 10px 0; box-shadow: var(--shadow);
+.story {
+  background: #fff; border-radius: var(--radius); padding: 16px 18px;
+  margin: 10px 0; box-shadow: var(--shadow);
 }
+.story p {
+  font-size: 1.15rem; line-height: 1.9; margin: 0 0 12px;
+}
+.story p:last-child { margin-bottom: 0; }
 .btn-speak {
   border: none; background: var(--color-sea); color: #fff;
   border-radius: 999px; padding: 8px 16px; font-size: 1rem; cursor: pointer; margin: 8px 0;
