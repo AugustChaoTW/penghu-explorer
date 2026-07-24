@@ -18,6 +18,20 @@ const Learn = (() => {
     speechSynthesis.speak(utter);
   }
 
+  // 單一關的朗讀稿：標題/提示/內文/勾選項目/想一想/討論/隱藏挑戰/備註
+  function buildTaskScript(t) {
+    const parts = [t.title];
+    if (t.hint) parts.push(t.hint);
+    if (t.body) parts.push(t.body);
+    if (t.checklist) parts.push(...t.checklist);
+    if (t.options) parts.push('選項有：' + t.options.join('、'));
+    if (t.reflect) parts.push('想一想：' + t.reflect);
+    if (t.discuss) parts.push(t.discuss);
+    if (t.bonus && t.bonus.body) parts.push(t.bonus.label || '隱藏挑戰', t.bonus.body);
+    if (t.note) parts.push(t.note);
+    return parts;
+  }
+
   // 朗讀稿：前述 → 第一關 → 第二關 → …（含任務內文、勾選項目、想一想、討論）
   function buildSpeechScript(loc) {
     const parts = [];
@@ -25,19 +39,20 @@ const Learn = (() => {
     const intro = loc.story || (Array.isArray(loc.intro) ? loc.intro : null) || loc.narrative;
     if (intro) parts.push('前述。', ...intro);
 
-    (loc.tasks || []).forEach(t => {
-      parts.push(t.title);
-      if (t.hint) parts.push(t.hint);
-      if (t.body) parts.push(t.body);
-      if (t.checklist) parts.push(...t.checklist);
-      if (t.options) parts.push('選項有：' + t.options.join('、'));
-      if (t.reflect) parts.push('想一想：' + t.reflect);
-      if (t.discuss) parts.push(t.discuss);
-      if (t.bonus && t.bonus.body) parts.push(t.bonus.label || '隱藏挑戰', t.bonus.body);
-      if (t.note) parts.push(t.note);
-    });
+    (loc.tasks || []).forEach(t => parts.push(...buildTaskScript(t)));
 
     return parts;
+  }
+
+  function speakButton(script, className) {
+    const btn = el('button', className, '🔊');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', '唸給我聽');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      speak(script);
+    });
+    return btn;
   }
 
   function fillInLine(label) {
@@ -63,7 +78,10 @@ const Learn = (() => {
   // 中歐版任務卡：body / checklist / fillIns / reflect / discuss / bonus / options / note / drawBox
   function renderWorksheetTask(t) {
     const card = el('div', 'task worksheet-task');
-    card.appendChild(el('div', 'task-title', t.title));
+    const titleRow = el('div', 'task-title-row');
+    titleRow.appendChild(el('div', 'task-title', t.title));
+    titleRow.appendChild(speakButton(buildTaskScript(t), 'btn-speak-task'));
+    card.appendChild(titleRow);
     if (t.body) card.appendChild(el('p', 'task-body', t.body));
     if (t.checklist) card.appendChild(checklistBlock(t.checklist));
     if (t.options) {
@@ -98,7 +116,10 @@ const Learn = (() => {
   // 澎湖版任務卡：icon / title / hint
   function renderSimpleTask(t) {
     const card = el('div', 'task');
-    card.appendChild(el('div', 'task-title', `${t.icon || ''} ${t.title}`));
+    const titleRow = el('div', 'task-title-row');
+    titleRow.appendChild(el('div', 'task-title', `${t.icon || ''} ${t.title}`));
+    titleRow.appendChild(speakButton(buildTaskScript(t), 'btn-speak-task'));
+    card.appendChild(titleRow);
     if (t.hint) card.appendChild(el('div', 'task-hint', t.hint));
     return card;
   }

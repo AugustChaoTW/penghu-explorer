@@ -130,6 +130,13 @@ h2 { font-size: 1.3rem; margin: 20px 0 12px; }
 }
 .task .task-title { font-size: 1.15rem; font-weight: bold; }
 .task .task-hint { font-size: 1rem; color: #555; margin-top: 4px; }
+.task-title-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.btn-speak-task {
+  flex-shrink: 0; border: none; background: #e3f2fd; color: var(--color-sea);
+  border-radius: 50%; width: 36px; height: 36px; font-size: 1.1rem; cursor: pointer;
+}
 
 /* --- worksheet-style tasks（中歐版）--- */
 .worksheet-task { display: flex; flex-direction: column; gap: 10px; }
